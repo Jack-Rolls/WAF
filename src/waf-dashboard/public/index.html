@@ -398,10 +398,24 @@
       status.style.display = 'block';
 
       try {
-        // This will be implemented in Phase 4
-        // For now, just show a placeholder
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        status.textContent = `${type} attacks completed (Phase 4 feature)`;
+        // Get vulnshop URL from current dashboard URL
+        const vulnshopUrl = window.location.origin.replace('waf-dashboard', 'vulnshop');
+
+        if (type === 'sqli') {
+          await runSQLiAttacks(vulnshopUrl);
+        } else if (type === 'xss') {
+          await runXSSAttacks(vulnshopUrl);
+        } else if (type === 'path') {
+          await runPathTraversalAttacks(vulnshopUrl);
+        } else if (type === 'cmd') {
+          await runCommandInjectionAttacks(vulnshopUrl);
+        } else if (type === 'benign') {
+          await runBenignTraffic(vulnshopUrl);
+        } else if (type === 'demo') {
+          await runFullDemo(vulnshopUrl);
+        }
+
+        status.textContent = `${type} attacks completed successfully!`;
         status.className = 'status success';
       } catch (error) {
         status.textContent = `Error: ${error.message}`;
@@ -410,6 +424,126 @@
 
       // Refresh data after attacks
       setTimeout(refreshData, 500);
+    }
+
+    // SQL Injection attacks - sent to /api/search?q=
+    async function runSQLiAttacks(baseUrl) {
+      const payloads = [
+        "' OR '1'='1",
+        "' OR 1=1--",
+        "1' UNION SELECT username, password FROM users--",
+        "1; DROP TABLE users--",
+        "admin'--"
+      ];
+
+      for (const payload of payloads) {
+        await fetch(`${baseUrl}/api/search?q=${encodeURIComponent(payload)}`, {
+          mode: 'no-cors'
+        });
+        await delay(200);
+      }
+    }
+
+    // XSS attacks - sent to /api/comment?c=
+    async function runXSSAttacks(baseUrl) {
+      const payloads = [
+        "<script>alert('xss')</script>",
+        "<img src=x onerror=alert('xss')>",
+        "javascript:alert('xss')",
+        "<svg onload=alert('xss')>",
+        "<iframe src=\"javascript:alert('xss')\"></iframe>"
+      ];
+
+      for (const payload of payloads) {
+        await fetch(`${baseUrl}/api/comment?c=${encodeURIComponent(payload)}`, {
+          mode: 'no-cors'
+        });
+        await delay(200);
+      }
+    }
+
+    // Path Traversal attacks - sent to /api/file?name=
+    async function runPathTraversalAttacks(baseUrl) {
+      const payloads = [
+        "../../../etc/passwd",
+        "..\\..\\..\\windows\\system32\\config\\sam",
+        "/etc/passwd",
+        "C:\\windows\\system.ini"
+      ];
+
+      for (const payload of payloads) {
+        await fetch(`${baseUrl}/api/file?name=${encodeURIComponent(payload)}`, {
+          mode: 'no-cors'
+        });
+        await delay(200);
+      }
+    }
+
+    // Command Injection attacks - sent to /api/ping?host=
+    async function runCommandInjectionAttacks(baseUrl) {
+      const payloads = [
+        "127.0.0.1; cat /etc/passwd",
+        "127.0.0.1 | whoami",
+        "127.0.0.1 && dir",
+        "127.0.0.1 || net user"
+      ];
+
+      for (const payload of payloads) {
+        await fetch(`${baseUrl}/api/ping?host=${encodeURIComponent(payload)}`, {
+          mode: 'no-cors'
+        });
+        await delay(200);
+      }
+    }
+
+    // Benign traffic - normal-looking requests
+    async function runBenignTraffic(baseUrl) {
+      const benignRequests = [
+        { endpoint: '/api/search', param: 'q', value: 'blue running shoes' },
+        { endpoint: '/api/search', param: 'q', value: 'red sneakers' },
+        { endpoint: '/api/comment', param: 'c', value: 'Great product!' },
+        { endpoint: '/api/comment', param: 'c', value: 'Thanks for the info' },
+        { endpoint: '/api/file', param: 'name', value: 'product-manual.pdf' },
+        { endpoint: '/api/file', param: 'name', value: 'user-guide.txt' },
+        { endpoint: '/api/ping', param: 'host', value: '8.8.8.8' },
+        { endpoint: '/api/ping', param: 'host', value: '1.1.1.1' },
+        { endpoint: '/api/search', param: 'q', value: 'wireless headphones' },
+        { endpoint: '/api/comment', param: 'c', value: 'Very helpful' }
+      ];
+
+      for (const req of benignRequests) {
+        await fetch(`${baseUrl}${req.endpoint}?${req.param}=${encodeURIComponent(req.value)}`, {
+          mode: 'no-cors'
+        });
+        await delay(200);
+      }
+    }
+
+    // Full demo - interleaved mix of all attack types
+    async function runFullDemo(baseUrl) {
+      const allAttacks = [
+        // SQLi
+        () => runSQLiAttacks(baseUrl),
+        // XSS
+        () => runXSSAttacks(baseUrl),
+        // Path traversal
+        () => runPathTraversalAttacks(baseUrl),
+        // Command injection
+        () => runCommandInjectionAttacks(baseUrl),
+        // Benign traffic
+        () => runBenignTraffic(baseUrl)
+      ];
+
+      for (const attackFn of allAttacks) {
+        await attackFn();
+        // Longer delay between attack types
+        await delay(500);
+      }
+    }
+
+    // Utility function for delays
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     // Initialize and start polling

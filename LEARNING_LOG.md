@@ -27,3 +27,13 @@
 **Why:** The dashboard must show live WAF activity, so APIs query D1 with efficient aggregations (GROUP BY, ORDER BY, LIMIT). UI uses vanilla HTML/CSS/JS with Chart.js from CDN—no frameworks. Polling happens automatically so charts update as vulnshop logs requests. Attack simulator buttons are placeholders for Phase 4.
 
 **Interview hook:** "I built a real-time dashboard that queries D1 for live WAF stats and visualizes them with Chart.js, polling every 3 seconds to show immediate feedback when attacks are blocked."
+
+---
+
+## Phase 4: Attack Simulator with curated payloads
+
+**What:** Implemented real attack simulator in dashboard frontend with 28 hardcoded payloads across 5 attack categories (SQLi, XSS, path traversal, command injection, benign). Each button sends `fetch()` requests with `no-cors` mode to deployed vulnshop Worker, using 200ms delays between requests. Dashboard polling shows results from D1 logs.
+
+**Why:** Browser CORS would block cross-origin requests, but `no-cors` mode allows sending (can't read response). Since vulnshop logs all requests async to D1, dashboard polling picks up verdicts. Payloads target specific WAF rules without being destructive—SQLi to search endpoint, XSS to comments, etc. Full demo interleaves all attack types.
+
+**Interview hook:** "I built an attack simulator that fires curated payloads at the WAF from the browser using no-cors mode, letting the dashboard polling show real-time blocking results without needing response data."
