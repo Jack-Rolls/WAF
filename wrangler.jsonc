@@ -29,7 +29,7 @@
         {
           "binding": "DB",
           "database_name": "waf-db",
-          "database_id": "placeholder-will-update-after-creation"
+          "database_id": "70464b21-9319-47c0-92ef-0981141e39eb"
         }
       ]
     },
@@ -61,7 +61,7 @@
         {
           "binding": "DB",
           "database_name": "waf-db",
-          "database_id": "placeholder-will-update-after-creation"
+          "database_id": "70464b21-9319-47c0-92ef-0981141e39eb"
         }
       ]
     }

@@ -17,3 +17,13 @@
 **Why:** The WAF must inspect every request before any processing, so we made the rules simple and auditable (flat array, readable patterns). Inspection decodes URLs before matching because attackers often double-encode; we check path, query, body, User-Agent, and Referer. Severity rollup is deterministic: high → block (403), medium → challenge (429), low → allow, all get logged. D1 logging is async (ctx.waitUntil) so it never delays the user-facing response. Stub API endpoints are safe (return fake JSON, never execute SQL/commands/file reads).
 
 **Interview hook:** "I implemented a flat-array rule engine so every regex is easily auditable, with severity-based verdict logic (high=block, med=challenge, low=allow), and async D1 logging that never slows down the request path."
+
+---
+
+## Phase 3: Dashboard API endpoints and real-time UI
+
+**What:** Built the dashboard Worker with real D1 queries for `/api/summary` (aggregates stats, breakdowns, top lists) and `/api/recent` (last 50 requests), plus a full vanilla HTML/JS dashboard that polls APIs every 3 seconds and visualizes data with Chart.js.
+
+**Why:** The dashboard must show live WAF activity, so APIs query D1 with efficient aggregations (GROUP BY, ORDER BY, LIMIT). UI uses vanilla HTML/CSS/JS with Chart.js from CDN—no frameworks. Polling happens automatically so charts update as vulnshop logs requests. Attack simulator buttons are placeholders for Phase 4.
+
+**Interview hook:** "I built a real-time dashboard that queries D1 for live WAF stats and visualizes them with Chart.js, polling every 3 seconds to show immediate feedback when attacks are blocked."
