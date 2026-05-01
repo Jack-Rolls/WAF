@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VulnShop - Vulnerable Demo App</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .section { border: 1px solid #ccc; padding: 15px; margin: 15px 0; }
+    input { padding: 8px; margin: 5px 0; width: 200px; }
+    button { padding: 8px 16px; cursor: pointer; }
+    .result { background: #f0f0f0; padding: 10px; margin-top: 10px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>VulnShop - Intentionally Vulnerable Demo</h1>
+  <p>Each section is a target for a different OWASP Top 10 attack. The WAF blocks attempts.</p>
+
+  <div class="section">
+    <h2>1. Product Search (SQLi Target)</h2>
+    <input type="text" id="search-input" placeholder="Enter search query...">
+    <button onclick="searchProduct()">Search</button>
+    <div id="search-result" class="result"></div>
+  </div>
+
+  <div class="section">
+    <h2>2. Comments (XSS Target)</h2>
+    <input type="text" id="comment-input" placeholder="Enter a comment...">
+    <button onclick="postComment()">Post Comment</button>
+    <div id="comment-result" class="result"></div>
+  </div>
+
+  <div class="section">
+    <h2>3. File Viewer (Path Traversal Target)</h2>
+    <input type="text" id="file-input" placeholder="Enter filename..." value="config.txt">
+    <button onclick="viewFile()">View File</button>
+    <div id="file-result" class="result"></div>
+  </div>
+
+  <div class="section">
+    <h2>4. Ping Tool (Command Injection Target)</h2>
+    <input type="text" id="host-input" placeholder="Enter hostname..." value="example.com">
+    <button onclick="pingHost()">Ping</button>
+    <div id="ping-result" class="result"></div>
+  </div>
+
+  <script>
+    const baseUrl = window.location.origin;
+
+    async function searchProduct() {
+      const q = document.getElementById('search-input').value;
+      try {
+        const res = await fetch(`${baseUrl}/api/search?q=${encodeURIComponent(q)}`);
+        const text = await res.text();
+        document.getElementById('search-result').textContent = `Status: ${res.status}\n${text}`;
+      } catch (e) {
+        document.getElementById('search-result').textContent = `Error: ${e.message}`;
+      }
+    }
+
+    async function postComment() {
+      const c = document.getElementById('comment-input').value;
+      try {
+        const res = await fetch(`${baseUrl}/api/comment?c=${encodeURIComponent(c)}`);
+        const text = await res.text();
+        document.getElementById('comment-result').textContent = `Status: ${res.status}\n${text}`;
+      } catch (e) {
+        document.getElementById('comment-result').textContent = `Error: ${e.message}`;
+      }
+    }
+
+    async function viewFile() {
+      const name = document.getElementById('file-input').value;
+      try {
+        const res = await fetch(`${baseUrl}/api/file?name=${encodeURIComponent(name)}`);
+        const text = await res.text();
+        document.getElementById('file-result').textContent = `Status: ${res.status}\n${text}`;
+      } catch (e) {
+        document.getElementById('file-result').textContent = `Error: ${e.message}`;
+      }
+    }
+
+    async function pingHost() {
+      const host = document.getElementById('host-input').value;
+      try {
+        const res = await fetch(`${baseUrl}/api/ping?host=${encodeURIComponent(host)}`);
+        const text = await res.text();
+        document.getElementById('ping-result').textContent = `Status: ${res.status}\n${text}`;
+      } catch (e) {
+        document.getElementById('ping-result').textContent = `Error: ${e.message}`;
+      }
+    }
+  </script>
+</body>
+</html>

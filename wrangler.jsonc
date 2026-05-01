@@ -1,0 +1,69 @@
+{
+  // WAF project with two Workers and shared D1 database
+  // See PRD.md for architecture
+  "env": {
+    "vulnshop": {
+      "name": "vulnshop",
+      "main": "src/vulnshop/index.ts",
+      "compatibility_date": "2026-05-01",
+      
+      // Serve static assets from public directory
+      "assets": {
+        "directory": "src/vulnshop/public"
+      },
+      
+      // Vulnerable demo app + WAF logic
+      // run_worker_first ensures WAF intercepts before any asset is served
+      "routes": [
+        {
+          "pattern": "vulnshop.workers.dev/*",
+          "zone_name": "workers.dev"
+        }
+      ],
+      "triggers": {
+        "crons": []
+      },
+      
+      // Bind to shared D1 database
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "waf-db",
+          "database_id": "placeholder-will-update-after-creation"
+        }
+      ]
+    },
+    
+    "waf-dashboard": {
+      "name": "waf-dashboard",
+      "main": "src/waf-dashboard/index.ts",
+      "compatibility_date": "2026-05-01",
+      
+      // Serve static assets for dashboard UI
+      "assets": {
+        "directory": "src/waf-dashboard/public"
+      },
+      
+      // Dashboard UI + analytics API
+      // run_worker_first only for /api/* so static assets serve directly
+      "routes": [
+        {
+          "pattern": "waf-dashboard.workers.dev/*",
+          "zone_name": "workers.dev"
+        }
+      ],
+      "triggers": {
+        "crons": []
+      },
+      
+      // Bind to same shared D1 database
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "waf-db",
+          "database_id": "placeholder-will-update-after-creation"
+        }
+      ]
+    }
+  }
+}
