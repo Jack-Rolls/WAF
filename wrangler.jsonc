@@ -1,29 +1,24 @@
 {
   // WAF project with two Workers and shared D1 database
   // See PRD.md for architecture
+  "name": "cf-waf",
+  "compatibility_date": "2026-05-01",
+
   "env": {
     "vulnshop": {
       "name": "vulnshop",
       "main": "src/vulnshop/index.ts",
       "compatibility_date": "2026-05-01",
-      
-      // Serve static assets from public directory
+      "workers_dev": true,
+
+      // Serve static assets from public directory.
+      // run_worker_first ensures WAF logic runs before static assets are served.
       "assets": {
-        "directory": "src/vulnshop/public"
+        "directory": "src/vulnshop/public",
+        "binding": "ASSETS",
+        "run_worker_first": true
       },
-      
-      // Vulnerable demo app + WAF logic
-      // run_worker_first ensures WAF intercepts before any asset is served
-      "routes": [
-        {
-          "pattern": "vulnshop.workers.dev/*",
-          "zone_name": "workers.dev"
-        }
-      ],
-      "triggers": {
-        "crons": []
-      },
-      
+
       // Bind to shared D1 database
       "d1_databases": [
         {
@@ -33,29 +28,21 @@
         }
       ]
     },
-    
+
     "waf-dashboard": {
       "name": "waf-dashboard",
       "main": "src/waf-dashboard/index.ts",
       "compatibility_date": "2026-05-01",
-      
-      // Serve static assets for dashboard UI
+      "workers_dev": true,
+
+      // Serve static assets for dashboard UI.
+      // Only /api/* routes run through the Worker. Static files serve directly.
       "assets": {
-        "directory": "src/waf-dashboard/public"
+        "directory": "src/waf-dashboard/public",
+        "binding": "ASSETS",
+        "run_worker_first": ["/api/*"]
       },
-      
-      // Dashboard UI + analytics API
-      // run_worker_first only for /api/* so static assets serve directly
-      "routes": [
-        {
-          "pattern": "waf-dashboard.workers.dev/*",
-          "zone_name": "workers.dev"
-        }
-      ],
-      "triggers": {
-        "crons": []
-      },
-      
+
       // Bind to same shared D1 database
       "d1_databases": [
         {
