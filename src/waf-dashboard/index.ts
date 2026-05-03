@@ -6,14 +6,36 @@ interface Env {
   DB: D1Database;
 }
 
+type D1Row = Record<string, unknown>;
+
+function jsonResponse(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function parseJsonArray(value: unknown): unknown[] {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * WAF Dashboard Worker
- * 
+ *
  * Handles two API routes (/api/summary, /api/recent) and serves dashboard UI.
  * run_worker_first for /api/* routes ensures APIs are handled before static assets.
  */
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
     // Handle API routes
@@ -29,7 +51,7 @@ export default {
           FROM requests
         `;
 
-        const summaryResult = await env.DB.prepare(summaryQuery).first();
+        const summaryResult = await env.DB.prepare(summaryQuery).first<D1Row>();
 
         // Verdict breakdown
         const verdictQuery = `
@@ -37,80 +59,93 @@ export default {
           FROM requests
           GROUP BY verdict
         `;
-        const verdictResults = await env.DB.prepare(verdictQuery).all();
+        const verdictResults = await env.DB.prepare(verdictQuery).all<D1Row>();
 
-        // Category breakdown (unique categories from matched_rules)
+        // Category breakdown from attack_categories.
+        // attack_categories is stored as a JSON array of strings, like ["sqli"].
+        // json_valid prevents malformed JSON from crashing the entire summary endpoint.
         const categoryQuery = `
           SELECT
-            json_extract(value, '$.category') as category,
+            category_json.value as category,
             COUNT(*) as count
           FROM requests,
           json_each(
             CASE
-              WHEN attack_categories IS NOT NULL AND attack_categories != '[]'
+              WHEN attack_categories IS NOT NULL
+                AND json_valid(attack_categories)
               THEN attack_categories
               ELSE '[]'
             END
-          )
-          GROUP BY category
+          ) AS category_json
+          WHERE category_json.value IS NOT NULL
+          GROUP BY category_json.value
           ORDER BY count DESC
         `;
-        const categoryResults = await env.DB.prepare(categoryQuery).all();
+        const categoryResults = await env.DB.prepare(categoryQuery).all<D1Row>();
 
         // Top 10 countries
         const countryQuery = `
           SELECT country, COUNT(*) as count
           FROM requests
-          WHERE country IS NOT NULL
+          WHERE country IS NOT NULL AND country != ''
           GROUP BY country
           ORDER BY count DESC
           LIMIT 10
         `;
-        const countryResults = await env.DB.prepare(countryQuery).all();
+        const countryResults = await env.DB.prepare(countryQuery).all<D1Row>();
 
         // Top 10 ASN orgs
         const asnQuery = `
           SELECT asn_org, COUNT(*) as count
           FROM requests
-          WHERE asn_org IS NOT NULL
+          WHERE asn_org IS NOT NULL AND asn_org != ''
           GROUP BY asn_org
           ORDER BY count DESC
           LIMIT 10
         `;
-        const asnResults = await env.DB.prepare(asnQuery).all();
+        const asnResults = await env.DB.prepare(asnQuery).all<D1Row>();
 
         const summary = {
-          total_requests: summaryResult?.total_requests || 0,
-          total_blocked: summaryResult?.total_blocked || 0,
-          total_challenged: summaryResult?.total_challenged || 0,
-          verdict_breakdown: verdictResults.results?.reduce((acc: any, row: any) => {
-            acc[row.verdict] = row.count;
-            return acc;
-          }, {}) || {},
-          category_breakdown: categoryResults.results?.reduce((acc: any, row: any) => {
-            acc[row.category] = row.count;
-            return acc;
-          }, {}) || {},
-          top_countries: countryResults.results?.map((row: any) => ({
-            country: row.country,
-            count: row.count,
-          })) || [],
-          top_asns: asnResults.results?.map((row: any) => ({
-            asn_org: row.asn_org,
-            count: row.count,
-          })) || [],
+          total_requests: Number(summaryResult?.total_requests ?? 0),
+          total_blocked: Number(summaryResult?.total_blocked ?? 0),
+          total_challenged: Number(summaryResult?.total_challenged ?? 0),
+          total_allowed: Number(summaryResult?.total_allowed ?? 0),
+
+          verdict_breakdown:
+            verdictResults.results?.reduce<Record<string, number>>((acc, row) => {
+              const verdict = String(row.verdict ?? '');
+              if (verdict) {
+                acc[verdict] = Number(row.count ?? 0);
+              }
+              return acc;
+            }, {}) ?? {},
+
+          category_breakdown:
+            categoryResults.results?.reduce<Record<string, number>>((acc, row) => {
+              const category = String(row.category ?? '');
+              if (category) {
+                acc[category] = Number(row.count ?? 0);
+              }
+              return acc;
+            }, {}) ?? {},
+
+          top_countries:
+            countryResults.results?.map((row) => ({
+              country: String(row.country ?? ''),
+              count: Number(row.count ?? 0),
+            })) ?? [],
+
+          top_asns:
+            asnResults.results?.map((row) => ({
+              asn_org: String(row.asn_org ?? ''),
+              count: Number(row.count ?? 0),
+            })) ?? [],
         };
 
-        return new Response(JSON.stringify(summary), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(summary);
       } catch (error) {
         console.error('Summary API error:', error);
-        return new Response(JSON.stringify({ error: 'Database query failed' }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse({ error: 'Database query failed' }, 500);
       }
     }
 
@@ -137,42 +172,40 @@ export default {
           ORDER BY timestamp DESC
           LIMIT 50
         `;
-        const recentResults = await env.DB.prepare(recentQuery).all();
+        const recentResults = await env.DB.prepare(recentQuery).all<D1Row>();
 
         const recent = {
-          requests: recentResults.results?.map((row: any) => ({
-            timestamp: row.timestamp,
-            method: row.method,
-            path: row.path,
-            query: row.query,
-            body_preview: row.body_preview,
-            user_agent: row.user_agent,
-            client_ip: row.client_ip,
-            asn: row.asn,
-            asn_org: row.asn_org,
-            country: row.country,
-            city: row.city,
-            verdict: row.verdict,
-            matched_rules: row.matched_rules ? JSON.parse(row.matched_rules) : [],
-            attack_categories: row.attack_categories ? JSON.parse(row.attack_categories) : [],
-          })) || [],
+          requests:
+            recentResults.results?.map((row) => ({
+              timestamp: Number(row.timestamp ?? 0),
+              method: String(row.method ?? ''),
+              path: String(row.path ?? ''),
+              query: row.query === null || row.query === undefined ? null : String(row.query),
+              body_preview:
+                row.body_preview === null || row.body_preview === undefined
+                  ? null
+                  : String(row.body_preview),
+              user_agent: String(row.user_agent ?? ''),
+              client_ip: String(row.client_ip ?? ''),
+              asn: row.asn === null || row.asn === undefined ? null : Number(row.asn),
+              asn_org: String(row.asn_org ?? ''),
+              country: String(row.country ?? ''),
+              city: String(row.city ?? ''),
+              verdict: String(row.verdict ?? ''),
+              matched_rules: parseJsonArray(row.matched_rules),
+              attack_categories: parseJsonArray(row.attack_categories),
+            })) ?? [],
         };
 
-        return new Response(JSON.stringify(recent), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse(recent);
       } catch (error) {
         console.error('Recent API error:', error);
-        return new Response(JSON.stringify({ error: 'Database query failed' }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonResponse({ error: 'Database query failed' }, 500);
       }
     }
 
-    // All other requests: try to serve static assets
-    // If no static asset matches, return 404
+    // All other requests: try to serve static assets.
+    // If no static asset matches, return 404.
     return new Response('Not Found', { status: 404 });
   },
 };
