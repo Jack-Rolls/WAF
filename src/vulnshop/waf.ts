@@ -112,7 +112,7 @@ export const WAF_RULES: WafRule[] = [
     category: 'path_traversal',
     severity: 'high',
     description: 'Absolute path to sensitive files (/etc/passwd, /windows/)',
-    pattern: /(\/etc\/|\/windows\||C:\\windows|\/sys\/)/i,
+    pattern: /(\/etc\/|\/windows\/|C:\\windows|\/sys\/)/i,
   },
   {
     id: 'path_003',
@@ -128,7 +128,7 @@ export const WAF_RULES: WafRule[] = [
     category: 'command_injection',
     severity: 'high',
     description: 'Command separator with shell command (;, |, &&, ||)',
-    pattern: /[;|&]\s*(cat|ls|whoami|nc|ncat|bash|sh|cmd|powershell|wget|curl)/i,
+    pattern: /[;|&]\s*(cat|ls|whoami|nc|ncat|bash|sh|cmd|powershell|wget|curl|dir|net|type|tasklist|del)/i,
   },
   {
     id: 'cmd_002',

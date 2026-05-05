@@ -3,6 +3,7 @@ import { logRequestToD1 } from './db';
 
 interface Env {
   DB: D1Database;
+  ASSETS: Fetcher;
 }
 
 /**
@@ -176,6 +177,6 @@ export default {
 
     // All other requests: try to serve static assets via default asset handler
     // If no static asset matches, return 404
-    return new Response('Not Found', { status: 404 });
+    return env.ASSETS.fetch(request);
   },
 };

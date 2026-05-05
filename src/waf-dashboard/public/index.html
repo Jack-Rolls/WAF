@@ -84,10 +84,12 @@
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       margin-bottom: 30px;
+      overflow-x: auto;
     }
 
     table {
       width: 100%;
+      min-width: 900px;
       border-collapse: collapse;
     }
 
@@ -218,15 +220,18 @@
             <th>Time</th>
             <th>Method</th>
             <th>Path</th>
+            <th>Query / Payload</th>
             <th>IP</th>
             <th>Country</th>
             <th>Verdict</th>
+            <th>Category</th>
             <th>Rules</th>
+            <th>ASN Org</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td colspan="7" style="text-align: center; color: #666;">No requests yet</td>
+            <td colspan="10" style="text-align: center; color: #666;">No requests yet</td>
           </tr>
         </tbody>
       </table>
@@ -332,6 +337,15 @@
       }
     }
 
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
     // Update dashboard with data
     function updateDashboard(data) {
       try {
@@ -376,8 +390,8 @@
             tbody.innerHTML = (data.top_asns && data.top_asns.length > 0)
               ? data.top_asns.map(asn => `
                   <tr>
-                    <td>${asn.asn_org || 'Unknown'}</td>
-                    <td>${asn.count || 0}</td>
+                    <td>${escapeHtml(asn.asn_org || 'Unknown')}</td>
+                    <td>${escapeHtml(asn.count || 0)}</td>
                   </tr>
                 `).join('')
               : '<tr><td colspan="2" style="text-align: center; color: #666;">No data yet</td></tr>';
@@ -398,18 +412,38 @@
         if (!tbody) return;
 
         tbody.innerHTML = (requests && requests.length > 0)
-          ? requests.map(req => `
-              <tr>
-                <td>${req.timestamp ? new Date(req.timestamp).toLocaleTimeString() : 'Unknown'}</td>
-                <td>${req.method || 'GET'}</td>
-                <td>${req.path || '/'}</td>
-                <td>${req.client_ip || 'Unknown'}</td>
-                <td>${req.country || 'Unknown'}</td>
-                <td class="verdict-${req.verdict || 'unknown'}">${req.verdict || 'unknown'}</td>
-                <td>${(req.matched_rules && Array.isArray(req.matched_rules) && req.matched_rules.length > 0) ? req.matched_rules.join(', ') : '-'}</td>
-              </tr>
-            `).join('')
-          : '<tr><td colspan="7" style="text-align: center; color: #666;">No requests yet</td></tr>';
+          ? requests.map(req => {
+              const verdict = req.verdict || 'unknown';
+              const verdictClass = verdict === 'blocked'
+                ? 'blocked'
+                : verdict === 'challenged'
+                ? 'challenged'
+                : 'allowed';
+
+              const queryOrPayload = req.query || req.body_preview || '-';
+              const categories = Array.isArray(req.attack_categories) && req.attack_categories.length > 0
+                ? req.attack_categories.join(', ')
+                : '-';
+              const rules = Array.isArray(req.matched_rules) && req.matched_rules.length > 0
+                ? req.matched_rules.join(', ')
+                : '-';
+
+              return `
+                <tr>
+                  <td>${escapeHtml(req.timestamp ? new Date(req.timestamp).toLocaleTimeString() : 'Unknown')}</td>
+                  <td>${escapeHtml(req.method || 'GET')}</td>
+                  <td>${escapeHtml(req.path || '/')}</td>
+                  <td>${escapeHtml(queryOrPayload)}</td>
+                  <td>${escapeHtml(req.client_ip || 'Unknown')}</td>
+                  <td>${escapeHtml(req.country || 'Unknown')}</td>
+                  <td class="verdict-${verdictClass}">${escapeHtml(verdict)}</td>
+                  <td>${escapeHtml(categories)}</td>
+                  <td>${escapeHtml(rules)}</td>
+                  <td>${escapeHtml(req.asn_org || 'Unknown')}</td>
+                </tr>
+              `;
+            }).join('')
+          : '<tr><td colspan="10" style="text-align: center; color: #666;">No requests yet</td></tr>';
       } catch (error) {
         console.error('Error updating recent activity:', error);
       }
@@ -498,6 +532,7 @@
         "<script>alert('xss')<\/script>",
         "<img src=x onerror=alert('xss')>",
         "javascript:alert('xss')",
+        "data:javascript:alert('xss')",
         "<svg onload=alert('xss')>",
         "<iframe src=\"javascript:alert('xss')\"></iframe>"
       ];
