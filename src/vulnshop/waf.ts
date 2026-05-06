@@ -62,6 +62,13 @@ export const WAF_RULES: WafRule[] = [
     pattern: /(exec|execute)\s*\(/i,
   },
   {
+    id: 'sqli_007',
+    category: 'sqli',
+    severity: 'high',
+    description: 'Time-delay SQL function',
+    pattern: /\b(sleep|benchmark|pg_sleep|waitfor\s+delay)\s*\(/i,
+  },
+  {
     id: 'sqli_006',
     category: 'sqli',
     severity: 'med',
@@ -82,7 +89,7 @@ export const WAF_RULES: WafRule[] = [
     category: 'xss',
     severity: 'high',
     description: 'Event handler (onerror, onload, onfocus, etc)',
-    pattern: /\s(on\w+)\s*=\s*['"]/i,
+    pattern: /\s(on\w+)\s*=\s*(?:"|'|[^\s>]+)/i,
   },
   {
     id: 'xss_003',
@@ -135,7 +142,7 @@ export const WAF_RULES: WafRule[] = [
     category: 'command_injection',
     severity: 'high',
     description: 'Command separator with shell command (;, |, &&, ||)',
-    pattern: /[;|&]\s*(cat|ls|whoami|nc|ncat|bash|sh|cmd|powershell|wget|curl|dir|net|type|tasklist|del)/i,
+    pattern: /[;|&]+\s*(cat|ls|whoami|id|ping|nc|ncat|bash|sh|cmd|powershell|wget|curl|dir|net|type|tasklist|del)/i,
   },
   {
     id: 'cmd_002',
@@ -158,12 +165,35 @@ export const WAF_RULES: WafRule[] = [
  * Safely handles malformed encoding without throwing
  */
 function safeUrlDecode(encoded: string): string {
-  try {
-    return decodeURIComponent(encoded);
-  } catch {
-    // If decode fails, return the original string
-    return encoded;
+  let decoded = encoded;
+
+  for (let i = 0; i < 3; i++) {
+    try {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) break;
+      decoded = next;
+    } catch {
+      break;
+    }
   }
+
+  return decoded;
+}
+
+/**
+ * Decode common HTML entities used in reflected XSS bypass payloads.
+ */
+function decodeHtmlEntities(value: string): string {
+  return value
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#x27;|&#39;|&apos;/gi, "'")
+    .replace(/&amp;/gi, '&');
+}
+
+function normalizeInspectionTarget(target: string): string {
+  return decodeHtmlEntities(safeUrlDecode(target));
 }
 
 /**
@@ -190,11 +220,11 @@ export function inspectRequest(
 
   // Inspection targets (decoded)
   const inspectionTargets = [
-    safeUrlDecode(path),
-    query ? safeUrlDecode(query) : '',
-    bodyText ? safeUrlDecode(bodyText.substring(0, 2048)) : '',
+    normalizeInspectionTarget(path),
+    query ? normalizeInspectionTarget(query) : '',
+    bodyText ? normalizeInspectionTarget(bodyText.substring(0, 2048)) : '',
     userAgent || '',
-    referer ? safeUrlDecode(referer) : '',
+    referer ? normalizeInspectionTarget(referer) : '',
   ];
 
   // Run each rule against all inspection targets
