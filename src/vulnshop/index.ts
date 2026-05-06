@@ -84,26 +84,6 @@ export default {
       );
     }
 
-    if (inspection.verdict === 'challenged') {
-      // Log and return 429 with stub challenge page
-      ctx.waitUntil(logRequestToD1(env.DB, ctx, logEntry));
-      return new Response(
-        `<html>
-          <head><title>Rate Limited</title></head>
-          <body>
-            <h1>Challenge Required</h1>
-            <p>Your request has been flagged as potentially suspicious.</p>
-            <p>In production, this would present a CAPTCHA (e.g., Cloudflare Turnstile).</p>
-            <p>Matched rules: ${inspection.matchedRules.map((r) => r.id).join(', ')}</p>
-          </body>
-        </html>`,
-        {
-          status: 429,
-          headers: { 'Content-Type': 'text/html' },
-        }
-      );
-    }
-
     // Request passed WAF — now route to API or static assets
     // All requests get logged (allowed verdicts too)
     ctx.waitUntil(logRequestToD1(env.DB, ctx, logEntry));

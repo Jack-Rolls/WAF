@@ -8,20 +8,20 @@
 export interface WafRule {
   id: string;
   category: 'sqli' | 'xss' | 'path_traversal' | 'command_injection';
-  severity: 'low' | 'med' | 'high';
+  severity: 'low' | 'high';
   description: string;
   pattern: RegExp;
 }
 
 export interface InspectionResult {
   matchedRules: WafRule[];
-  verdict: 'allowed' | 'blocked' | 'challenged';
+  verdict: 'allowed' | 'blocked';
   matchedCategories: Set<string>;
 }
 
 /**
  * WAF Detection Rules
- * ~15 rules across 4 OWASP categories
+ * 18 rules across 4 OWASP categories
  * Each rule targets a common attack pattern
  */
 export const WAF_RULES: WafRule[] = [
@@ -50,14 +50,14 @@ export const WAF_RULES: WafRule[] = [
   {
     id: 'sqli_004',
     category: 'sqli',
-    severity: 'med',
+    severity: 'high',
     description: 'DROP TABLE keyword',
     pattern: /drop\s+(table|database|schema)/i,
   },
   {
     id: 'sqli_005',
     category: 'sqli',
-    severity: 'med',
+    severity: 'high',
     description: 'EXEC or EXECUTE keyword',
     pattern: /(exec|execute)\s*\(/i,
   },
@@ -71,7 +71,7 @@ export const WAF_RULES: WafRule[] = [
   {
     id: 'sqli_006',
     category: 'sqli',
-    severity: 'med',
+    severity: 'high',
     description: 'Boolean expression with SELECT subquery',
     pattern: /(and|or)\s+[\w.-]+\s*=\s*\(\s*select\b/i,
   },
@@ -89,7 +89,7 @@ export const WAF_RULES: WafRule[] = [
     category: 'xss',
     severity: 'high',
     description: 'Event handler (onerror, onload, onfocus, etc)',
-    pattern: /\s(on\w+)\s*=\s*(?:"|'|[^\s>]+)/i,
+    pattern: /<[^>]*[\s/](on\w+)\s*=\s*(?:"|'|[^\s>]+)/i,
   },
   {
     id: 'xss_003',
@@ -101,14 +101,14 @@ export const WAF_RULES: WafRule[] = [
   {
     id: 'xss_004',
     category: 'xss',
-    severity: 'med',
+    severity: 'high',
     description: 'Data URI protocol with javascript',
     pattern: /data:[^,]*javascript/i,
   },
   {
     id: 'xss_005',
     category: 'xss',
-    severity: 'med',
+    severity: 'high',
     description: 'SVG with embedded script',
     pattern: /<\s*svg[^>]*onload\s*=/i,
   },
@@ -131,7 +131,7 @@ export const WAF_RULES: WafRule[] = [
   {
     id: 'path_003',
     category: 'path_traversal',
-    severity: 'med',
+    severity: 'high',
     description: 'Encoded traversal (%2e%2e)',
     pattern: /%2e%2e|%252e%252e/i,
   },
@@ -154,7 +154,7 @@ export const WAF_RULES: WafRule[] = [
   {
     id: 'cmd_003',
     category: 'command_injection',
-    severity: 'med',
+    severity: 'high',
     description: 'Newline or carriage return injection',
     pattern: /(%0a|%0d|\\n|\\r)/i,
   },
@@ -193,7 +193,7 @@ function decodeHtmlEntities(value: string): string {
 }
 
 function normalizeInspectionTarget(target: string): string {
-  return decodeHtmlEntities(safeUrlDecode(target));
+  return decodeHtmlEntities(safeUrlDecode(target).replace(/\+/g, ' '));
 }
 
 /**
@@ -238,12 +238,10 @@ export function inspectRequest(
     }
   }
 
-  // Severity rollup: high → block, med → challenge, low → allow
-  let verdict: 'allowed' | 'blocked' | 'challenged' = 'allowed';
+  // Severity rollup: high rules block, low rules only record detections.
+  let verdict: 'allowed' | 'blocked' = 'allowed';
   if (matchedRules.some((r) => r.severity === 'high')) {
     verdict = 'blocked';
-  } else if (matchedRules.some((r) => r.severity === 'med')) {
-    verdict = 'challenged';
   }
 
   return { matchedRules, verdict, matchedCategories };

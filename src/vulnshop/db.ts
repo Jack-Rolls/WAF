@@ -19,7 +19,7 @@ export interface RequestLogEntry {
   asnOrg?: string;
   country?: string;
   city?: string;
-  verdict: 'allowed' | 'blocked' | 'challenged';
+  verdict: 'allowed' | 'blocked';
   matchedRules: WafRule[];
   matchedCategories: Set<string>;
 }

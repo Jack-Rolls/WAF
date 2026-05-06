@@ -14,7 +14,6 @@
       --panel-border: #252a31;
       --accent: #F6821F;
       --blocked: #ef4444;
-      --challenged: #f59e0b;
       --allowed: #22c55e;
       --text: #e6e8eb;
       --text-secondary: #8b95a3;
@@ -197,7 +196,7 @@
     .metrics-grid {
       display: grid;
       gap: var(--space-4);
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .stat-card {
@@ -506,10 +505,6 @@
       color: var(--blocked);
     }
 
-    .verdict-pill.challenged {
-      color: var(--challenged);
-    }
-
     .verdict-pill.allowed {
       color: var(--allowed);
       text-transform: lowercase;
@@ -517,10 +512,6 @@
 
     .verdict-pill.blocked .verdict-dot {
       background: var(--blocked);
-    }
-
-    .verdict-pill.challenged .verdict-dot {
-      background: var(--challenged);
     }
 
     .verdict-pill.allowed .verdict-dot {
@@ -613,7 +604,7 @@
         <div class="brand-stack">
           <div class="brand-title">▣ EDGE-WAF</div>
           <div class="brand-tagline">Custom Web Application Firewall protecting a deliberately vulnerable demo app.</div>
-          <div class="brand-subtitle">16 rules active · <span id="last-sync">last sync: waiting</span></div>
+          <div class="brand-subtitle">18 rules active · <span id="last-sync">last sync: waiting</span></div>
         </div>
         <div class="top-status">
           <div class="status-pill" aria-label="WAF armed">
@@ -634,11 +625,6 @@
           <div class="stat-label">Blocked</div>
           <div class="stat-value" id="blocked-total">--</div>
           <div class="stat-footer" id="blocked-footer">loading sparkline</div>
-        </article>
-        <article class="stat-card">
-          <div class="stat-label">Challenged</div>
-          <div class="stat-value" id="challenged-total">--</div>
-          <div class="stat-footer" id="challenged-footer">loading sparkline</div>
         </article>
         <article class="stat-card">
           <div class="stat-label">Total</div>
@@ -744,7 +730,6 @@
     const colors = {
       accent: '#F6821F',
       blocked: '#ef4444',
-      challenged: '#f59e0b',
       allowed: '#22c55e',
       neutral: '#8b95a3',
     };
@@ -837,10 +822,7 @@
 
     function createThreatBuckets(requests) {
       const totalBuckets = createBuckets(requests);
-      const threatBuckets = createBuckets(
-        requests,
-        (request) => request.verdict === 'blocked' || request.verdict === 'challenged'
-      );
+      const threatBuckets = createBuckets(requests, (request) => normalizeVerdict(request.verdict) === 'blocked');
 
       return totalBuckets.map((total, index) => {
         if (total === 0) return 0;
@@ -861,7 +843,7 @@
       }
 
       if (score < 30) {
-        return { label: 'MEDIUM', color: colors.challenged };
+        return { label: 'MEDIUM', color: colors.accent };
       }
 
       return { label: 'HIGH', color: colors.blocked };
@@ -882,29 +864,24 @@
 
       const total = getNumber(summary.total_requests);
       const blocked = getNumber(summary.total_blocked);
-      const challenged = getNumber(summary.total_challenged);
       const threatScore = total === 0
         ? 0
-        : Math.round(((blocked + challenged) / total) * 100);
+        : Math.round((blocked / total) * 100);
       const threatLevel = getThreatLevel(threatScore);
 
       document.getElementById('threat-score').textContent = `${threatScore}%`;
       document.getElementById('blocked-total').textContent = formatCount(blocked);
-      document.getElementById('challenged-total').textContent = formatCount(challenged);
       document.getElementById('request-total').textContent = formatCount(total);
 
-      const blockedBuckets = createBuckets(requests, (request) => request.verdict === 'blocked');
-      const challengedBuckets = createBuckets(requests, (request) => request.verdict === 'challenged');
+      const blockedBuckets = createBuckets(requests, (request) => normalizeVerdict(request.verdict) === 'blocked');
       const totalBuckets = createBuckets(requests);
       const threatBuckets = createThreatBuckets(requests);
 
-      const blockedLastHour = countLastHour(requests, (request) => request.verdict === 'blocked');
-      const challengedLastHour = countLastHour(requests, (request) => request.verdict === 'challenged');
+      const blockedLastHour = countLastHour(requests, (request) => normalizeVerdict(request.verdict) === 'blocked');
       const totalLastHour = countLastHour(requests, () => true);
 
       setFooter('threat-footer', threatBuckets, colors.accent, threatLevel.label, threatLevel.color);
       setFooter('blocked-footer', blockedBuckets, colors.blocked, `+${blockedLastHour} / 1h`);
-      setFooter('challenged-footer', challengedBuckets, colors.challenged, `+${challengedLastHour} / 1h`);
       setFooter('request-footer', totalBuckets, colors.neutral, `+${totalLastHour} / 1h`);
 
       const requestsLastMinute = totalBuckets.reduce((sum, count) => sum + count, 0);
@@ -1015,9 +992,14 @@
       ].join('|');
     }
 
+    function normalizeVerdict(verdict) {
+      // "challenged" is a legacy verdict from earlier rule design; render it as blocked.
+      return verdict === 'challenged' ? 'blocked' : verdict;
+    }
+
     function getVerdictMarkup(verdict) {
-      const normalized = ['blocked', 'challenged', 'allowed'].includes(verdict)
-        ? verdict
+      const normalized = ['blocked', 'allowed'].includes(normalizeVerdict(verdict))
+        ? normalizeVerdict(verdict)
         : 'allowed';
 
       return `
@@ -1077,7 +1059,7 @@
       latestEventKey = newEventKey;
 
       container.innerHTML = requests.map((request, index) => {
-        const verdict = request.verdict || 'allowed';
+        const verdict = normalizeVerdict(request.verdict || 'allowed');
         const rules = Array.isArray(request.matched_rules) && request.matched_rules.length > 0
           ? request.matched_rules.join(', ')
           : '—';
@@ -1135,7 +1117,7 @@
     }
 
     function getDetectionCount(summary) {
-      return getNumber(summary?.total_blocked) + getNumber(summary?.total_challenged);
+      return getNumber(summary?.total_blocked);
     }
 
     async function fetchSummary() {

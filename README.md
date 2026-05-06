@@ -17,7 +17,7 @@ The project has two Cloudflare Workers:
    - Serves a deliberately vulnerable demo app.
    - Runs WAF logic before handling requests.
    - Detects malicious request patterns.
-   - Blocks, challenges, or allows traffic.
+   - Blocks or allows traffic.
    - Logs every request to D1.
 
 2. **WAF Dashboard Worker**
@@ -55,7 +55,7 @@ VulnShop Worker
       |
       |-- WAF inspection
       |-- Rule matching
-      |-- Allow / Block / Challenge decision
+      |-- Allow / Block decision
       |-- Async logging to D1
       v
 Cloudflare D1 Database

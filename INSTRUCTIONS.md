@@ -44,9 +44,8 @@ The dashboard uses two endpoints. Confirm these shapes by reading `src/waf-dashb
 {
   "total_requests": 104,
   "total_blocked": 37,
-  "total_challenged": 8,
   "total_allowed": 59,
-  "verdict_breakdown": { "allowed": 59, "blocked": 37, "challenged": 8 },
+  "verdict_breakdown": { "allowed": 67, "blocked": 37 },
   "category_breakdown": { "xss": 20, "sqli": 13, "path_traversal": 10, "command_injection": 4 },
   "top_countries": [{ "country": "US", "count": 104 }],
   "top_asns": [{ "asn_org": "AT&T Enterprises, LLC", "count": 60 }]
@@ -90,7 +89,6 @@ This is what you are building. Read this spec twice before writing any code.
 - **Accent color:** Cloudflare orange `#F6821F`. Use sparingly — for the live indicator dot, the headline metric value (Threat Score), and one or two key emphasis moments. Not on every button.
 - **Verdict colors:**
   - Blocked: `#ef4444` (red)
-  - Challenged: `#f59e0b` (amber)
   - Allowed: `#22c55e` (green)
 - **Text colors:** primary `#e6e8eb`, secondary `#8b95a3`, dim `#5a6371`.
 - **Fonts:** load Inter for sans-serif and JetBrains Mono for monospace from Google Fonts via `<link>` tag. Use Inter for everything by default. Use JetBrains Mono for: paths, IPs, rule IDs, ASN numbers, payloads, and any code-like text.
@@ -102,28 +100,27 @@ This is what you are building. Read this spec twice before writing any code.
 
 A thin horizontal bar across the top of the screen.
 
-- Left: the title `▣ EDGE-WAF` in mono font, then a subtitle line below it: `vulnshop.workers.dev · 16 rules active · last sync: 2s ago`. The "16 rules active" is hardcoded for now. The "last sync" updates every refresh cycle.
+- Left: the title `▣ EDGE-WAF` in mono font, then a subtitle line below it: `vulnshop.workers.dev · 18 rules active · last sync: 2s ago`. The "18 rules active" is hardcoded for now. The "last sync" updates every refresh cycle.
 - Right: a small status pill showing `ARMED ●` with a pulsing green dot, then `2.3 r/s` (live throughput — calculate this client-side as: requests received in the last 60 seconds / 60). If unavailable, show `— r/s`.
 - Total height: ~64px.
 
 ### Headline metrics row
 
-A 4-column grid below the top bar. Each column is a "stat card." 96px tall. Cards have:
+A 3-column grid below the top bar. Each column is a "stat card." 96px tall. Cards have:
 
-- Top row: small dim label (`THREAT SCORE`, `BLOCKED`, `CHALLENGED`, `TOTAL`)
+- Top row: small dim label (`THREAT SCORE`, `BLOCKED`, `TOTAL`)
 - Big number in the center, 36px font size, weight 600
 - A bottom row showing either a 60-second sparkline (see below) or a delta line like `+12 / 1h`
 
 The four cards are:
 
-1. **THREAT SCORE** — calculated as `(blocked + challenged) / total * 100`, displayed as a percent. Below it: a sparkline of threat-score-per-minute for the last 60 seconds. Color the value in accent orange. Below sparkline: text `LOW` / `MEDIUM` / `HIGH` based on thresholds (under 10% = LOW green, 10-30% = MEDIUM amber, 30%+ = HIGH red).
+1. **THREAT SCORE** — calculated as `blocked / total * 100`, displayed as a percent. Below it: a sparkline of threat-score-per-minute for the last 60 seconds. Color the value in accent orange. Below sparkline: text `LOW` / `MEDIUM` / `HIGH` based on thresholds (under 10% = LOW green, 10-30% = MEDIUM orange, 30%+ = HIGH red).
 2. **BLOCKED** — `total_blocked`. Sparkline of blocked-per-minute. Below sparkline: `+N / 1h` showing blocks in the last hour.
-3. **CHALLENGED** — `total_challenged`. Same pattern.
-4. **TOTAL** — `total_requests`. Same pattern.
+3. **TOTAL** — `total_requests`. Same pattern.
 
 #### How to render sparklines
 
-Use inline SVG. No library. 60px wide, 20px tall. The data is the last 60 entries of "requests-per-second" or "blocks-per-second" derived from the `/api/recent` results' timestamps. Bin the timestamps into 60 one-second buckets and count. Render as a path. Color the line in accent orange for THREAT SCORE, red for BLOCKED, amber for CHALLENGED, neutral gray for TOTAL.
+Use inline SVG. No library. 60px wide, 20px tall. The data is the last 60 entries of "requests-per-second" or "blocks-per-second" derived from the `/api/recent` results' timestamps. Bin the timestamps into 60 one-second buckets and count. Render as a path. Color the line in accent orange for THREAT SCORE, red for BLOCKED, neutral gray for TOTAL.
 
 Explain to Jack how the binning works before you write the code.
 
@@ -181,7 +178,7 @@ A wide panel at the bottom of the page, taking the full grid width.
 
 - Line 1: time (mono, dim), method (mono), full path with query (mono).
 - Line 2: verdict pill (colored dot + uppercase verdict), matched rule IDs joined with commas (mono), client IP (mono, truncated to first 24 chars + `…` if longer), ASN org (truncated to 32 chars + `…` if longer).
-- Line 3 (only for blocked/challenged events): the offending payload extracted from the query string or body preview. Render in mono, with the suspicious tokens highlighted in red. If you can't reliably extract the payload, omit line 3.
+- Line 3 (only for blocked events): the offending payload extracted from the query string or body preview. Render in mono, with the suspicious tokens highlighted in red. If you can't reliably extract the payload, omit line 3.
 - Allowed requests get a single-line compact form: `9:17:30  GET  /api/comment  🟢 allowed  US · Miami University`.
 - Use 12px-14px font sizes here so density stays readable.
 - The most recent event has a subtle accent-orange left border for 2 seconds after it appears, then fades to the normal panel border. This makes new events visually obvious without being annoying.

@@ -22,8 +22,6 @@
       --text-dim: #7b8797;
       --blocked: #dc2626;
       --blocked-bg: #fff1f2;
-      --challenged: #d97706;
-      --challenged-bg: #fffbeb;
       --allowed: #16a34a;
       --allowed-bg: #ecfdf5;
       --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -351,11 +349,6 @@
       border-color: #fecdd3;
     }
 
-    .response-panel.challenged {
-      background: var(--challenged-bg);
-      border-color: #fde68a;
-    }
-
     .response-panel.error {
       background: #f8fafc;
       border-color: var(--border-strong);
@@ -381,11 +374,6 @@
     .blocked .response-title {
       color: var(--blocked);
       font-size: 24px;
-    }
-
-    .challenged .response-title {
-      color: var(--challenged);
-      font-size: 23px;
     }
 
     .allowed .response-title {
@@ -446,11 +434,6 @@
       font-size: 12px;
       font-weight: 800;
       padding: 5px 9px;
-    }
-
-    .challenged .rule-badge {
-      border-color: rgba(217, 119, 6, 0.28);
-      color: #92400e;
     }
 
     .rule-descriptions {
@@ -750,15 +733,6 @@
       }
     }
 
-    function extractChallengeRules(raw) {
-      const match = raw.match(/Matched rules:\s*([^<]+)/i);
-      if (!match) return [];
-      return match[1]
-        .split(',')
-        .map((rule) => rule.trim())
-        .filter(Boolean);
-    }
-
     function summarizeAllowed(target, json, raw) {
       if (!json || typeof json !== 'object') {
         return raw ? raw.replace(/\s+/g, ' ').trim().slice(0, 140) : 'Request completed successfully.';
@@ -795,20 +769,6 @@
           type: 'blocked',
           title: 'BLOCKED BY WAF',
           summary: 'EDGE-WAF stopped this request before it reached the vulnerable stub.',
-          status: data.status,
-          payload: data.payload,
-          raw: data.raw,
-          rules,
-        }));
-        return;
-      }
-
-      if (data.status === 429) {
-        const rules = extractChallengeRules(data.raw).map((id) => ({ id }));
-        result.append(renderPanel({
-          type: 'challenged',
-          title: 'CHALLENGED',
-          summary: 'EDGE-WAF flagged this as suspicious and returned a challenge response.',
           status: data.status,
           payload: data.payload,
           raw: data.raw,

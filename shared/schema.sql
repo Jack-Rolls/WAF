@@ -13,7 +13,7 @@ CREATE TABLE requests (
   asn_org TEXT,
   country TEXT,
   city TEXT,
-  verdict TEXT NOT NULL,        -- 'allowed' | 'blocked' | 'challenged'
+  verdict TEXT NOT NULL,        -- 'allowed' | 'blocked'; older rows may contain legacy 'challenged'
   matched_rules TEXT,           -- JSON array of rule IDs
   attack_categories TEXT        -- JSON array of unique categories
 );

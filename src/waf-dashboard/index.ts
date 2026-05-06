@@ -46,6 +46,7 @@ export default {
           SELECT
             COUNT(*) as total_requests,
             SUM(CASE WHEN verdict = 'blocked' THEN 1 ELSE 0 END) as total_blocked,
+            -- Kept for backward compatibility with historical D1 rows; the UI no longer displays it.
             SUM(CASE WHEN verdict = 'challenged' THEN 1 ELSE 0 END) as total_challenged,
             SUM(CASE WHEN verdict = 'allowed' THEN 1 ELSE 0 END) as total_allowed
           FROM requests
