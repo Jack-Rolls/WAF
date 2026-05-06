@@ -102,6 +102,27 @@
       font-size: 12px;
     }
 
+    .brand-tagline {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .brand-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      text-underline-offset: 3px;
+    }
+
+    .brand-link:hover {
+      text-decoration: underline;
+      text-decoration-color: var(--accent);
+    }
+
+    .external-glyph {
+      color: var(--text-secondary);
+      font-size: 11px;
+    }
+
     .top-status {
       align-items: center;
       display: flex;
@@ -568,7 +589,8 @@
       <header class="top-bar" aria-label="EDGE-WAF status">
         <div class="brand-stack">
           <div class="brand-title">▣ EDGE-WAF</div>
-          <div class="brand-subtitle">vulnshop.workers.dev · 16 rules active · <span id="last-sync">last sync: waiting</span></div>
+          <div class="brand-tagline">Custom Web Application Firewall protecting a deliberately vulnerable demo app.</div>
+          <div class="brand-subtitle"><a class="brand-link" href="https://vulnshop.jackrolls1185.workers.dev" target="_blank" rel="noopener">vulnshop.jackrolls1185.workers.dev</a> <span class="external-glyph" aria-hidden="true">↗</span> · 16 rules active · <span id="last-sync">last sync: waiting</span></div>
         </div>
         <div class="top-status">
           <div class="status-pill" aria-label="WAF armed">
