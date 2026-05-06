@@ -4,92 +4,910 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VulnShop - Vulnerable Demo App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    body { font-family: sans-serif; margin: 20px; }
-    .section { border: 1px solid #ccc; padding: 15px; margin: 15px 0; }
-    input { padding: 8px; margin: 5px 0; width: 200px; }
-    button { padding: 8px 16px; cursor: pointer; }
-    .result { background: #f0f0f0; padding: 10px; margin-top: 10px; white-space: pre-wrap; }
+    :root {
+      --bg: #f7fafc;
+      --surface: #ffffff;
+      --surface-soft: #eef6ff;
+      --border: #d9e3ee;
+      --border-strong: #b9c9da;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --accent-soft: #dbeafe;
+      --text: #172033;
+      --text-secondary: #5d6b7f;
+      --text-dim: #7b8797;
+      --blocked: #dc2626;
+      --blocked-bg: #fff1f2;
+      --challenged: #d97706;
+      --challenged-bg: #fffbeb;
+      --allowed: #16a34a;
+      --allowed-bg: #ecfdf5;
+      --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --radius: 8px;
+      --shadow: 0 18px 45px rgba(37, 99, 235, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100%;
+    }
+
+    body {
+      background:
+        linear-gradient(180deg, #ffffff 0, #f7fafc 420px),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    summary:focus-visible,
+    a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    .page-shell {
+      margin: 0 auto;
+      max-width: 1180px;
+      padding: 18px;
+    }
+
+    .site-header {
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.9);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+    }
+
+    .header-inner {
+      align-items: center;
+      display: flex;
+      gap: 20px;
+      justify-content: space-between;
+      margin: 0 auto;
+      max-width: 1180px;
+      min-height: 74px;
+      padding: 12px 18px;
+    }
+
+    .brand-stack {
+      display: grid;
+      gap: 2px;
+    }
+
+    .brand-title {
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand-subtitle {
+      color: var(--text-secondary);
+      font-size: 13px;
+      max-width: 680px;
+    }
+
+    .dashboard-link {
+      align-items: center;
+      background: var(--accent);
+      border-radius: 999px;
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
+      color: #ffffff;
+      display: inline-flex;
+      flex: 0 0 auto;
+      font-size: 13px;
+      font-weight: 800;
+      gap: 8px;
+      min-height: 40px;
+      padding: 0 16px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .dashboard-link:hover {
+      background: var(--accent-dark);
+      transform: translateY(-1px);
+    }
+
+    .hero {
+      display: grid;
+      gap: 14px;
+      padding: 34px 0 24px;
+    }
+
+    .hero-kicker {
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      color: var(--text);
+      font-size: clamp(34px, 6vw, 62px);
+      font-weight: 800;
+      letter-spacing: 0;
+      line-height: 1;
+      max-width: 860px;
+    }
+
+    .hero-copy {
+      color: var(--text-secondary);
+      font-size: 17px;
+      max-width: 780px;
+    }
+
+    .context-strip {
+      align-items: center;
+      background: var(--surface-soft);
+      border: 1px solid #c7dcff;
+      border-radius: var(--radius);
+      color: #25446f;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+      margin: 2px 0 22px;
+      padding: 12px 14px;
+    }
+
+    .context-strip strong {
+      color: #15345f;
+      font-weight: 800;
+    }
+
+    .context-strip span {
+      font-size: 13px;
+    }
+
+    .target-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .target-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 18px;
+      padding: 20px;
+    }
+
+    .card-top {
+      align-items: start;
+      display: flex;
+      gap: 14px;
+      justify-content: space-between;
+    }
+
+    .card-title {
+      color: var(--text);
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .card-description {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .attack-badge {
+      background: #edf4ff;
+      border: 1px solid #c9ddff;
+      border-radius: 999px;
+      color: #1d4ed8;
+      flex: 0 0 auto;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 8px;
+      text-transform: uppercase;
+    }
+
+    .attack-form {
+      display: grid;
+      gap: 10px;
+    }
+
+    .input-row {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .input-row input {
+      background: #ffffff;
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      color: var(--text);
+      min-height: 44px;
+      min-width: 0;
+      padding: 0 12px;
+    }
+
+    .input-row input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .submit-button {
+      background: var(--text);
+      border-radius: 6px;
+      color: #ffffff;
+      cursor: pointer;
+      font-weight: 800;
+      min-height: 44px;
+      padding: 0 16px;
+      white-space: nowrap;
+    }
+
+    .submit-button:hover:not(:disabled) {
+      background: #253149;
+    }
+
+    .submit-button:disabled,
+    .payload-chip:disabled {
+      cursor: wait;
+      opacity: 0.6;
+    }
+
+    .payload-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .payload-chip {
+      align-items: center;
+      background: #f8fbff;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1;
+      max-width: 210px;
+      min-height: 32px;
+      overflow: hidden;
+      padding: 0 10px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .payload-chip:hover:not(:disabled) {
+      background: var(--accent-soft);
+      border-color: #a9c8ff;
+      color: #15345f;
+    }
+
+    .response-result {
+      min-height: 78px;
+    }
+
+    .empty-response {
+      align-items: center;
+      background: #f8fafc;
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius);
+      color: var(--text-dim);
+      display: flex;
+      font-size: 13px;
+      min-height: 78px;
+      padding: 14px;
+    }
+
+    .response-panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: grid;
+      gap: 12px;
+      padding: 15px;
+    }
+
+    .response-panel.allowed {
+      background: var(--allowed-bg);
+      border-color: #bbf7d0;
+    }
+
+    .response-panel.blocked {
+      background: var(--blocked-bg);
+      border-color: #fecdd3;
+    }
+
+    .response-panel.challenged {
+      background: var(--challenged-bg);
+      border-color: #fde68a;
+    }
+
+    .response-panel.error {
+      background: #f8fafc;
+      border-color: var(--border-strong);
+    }
+
+    .response-heading {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: space-between;
+    }
+
+    .response-title {
+      align-items: center;
+      display: inline-flex;
+      font-size: 20px;
+      font-weight: 800;
+      gap: 8px;
+      letter-spacing: 0;
+    }
+
+    .blocked .response-title {
+      color: var(--blocked);
+      font-size: 24px;
+    }
+
+    .challenged .response-title {
+      color: var(--challenged);
+      font-size: 23px;
+    }
+
+    .allowed .response-title {
+      color: var(--allowed);
+    }
+
+    .status-code {
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(23, 32, 51, 0.12);
+      border-radius: 999px;
+      color: var(--text-secondary);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 8px;
+    }
+
+    .response-summary {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .payload-echo {
+      background: rgba(255, 255, 255, 0.74);
+      border: 1px solid rgba(23, 32, 51, 0.1);
+      border-radius: 6px;
+      display: grid;
+      gap: 5px;
+      padding: 10px;
+    }
+
+    .payload-echo span {
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .payload-echo code {
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .rule-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .rule-badge {
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(220, 38, 38, 0.25);
+      border-radius: 999px;
+      color: #991b1b;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 5px 9px;
+    }
+
+    .challenged .rule-badge {
+      border-color: rgba(217, 119, 6, 0.28);
+      color: #92400e;
+    }
+
+    .rule-descriptions {
+      color: var(--text-secondary);
+      display: grid;
+      font-size: 13px;
+      gap: 5px;
+      list-style-position: inside;
+      padding-left: 0;
+    }
+
+    details.raw-response {
+      background: rgba(255, 255, 255, 0.62);
+      border: 1px solid rgba(23, 32, 51, 0.1);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    details.raw-response summary {
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 9px 10px;
+    }
+
+    details.raw-response pre {
+      border-top: 1px solid rgba(23, 32, 51, 0.1);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      max-height: 220px;
+      overflow: auto;
+      padding: 10px;
+      white-space: pre-wrap;
+    }
+
+    .footer-note {
+      border-top: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin-top: 34px;
+      padding: 20px 0 8px;
+    }
+
+    .footer-note strong {
+      color: var(--text);
+    }
+
+    @media (max-width: 860px) {
+      .header-inner {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .dashboard-link {
+        justify-content: center;
+        width: 100%;
+      }
+
+      .target-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page-shell {
+        padding: 14px;
+      }
+
+      .hero {
+        padding-top: 26px;
+      }
+
+      .context-strip {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .input-row {
+        grid-template-columns: 1fr;
+      }
+
+      .submit-button {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>VulnShop - Intentionally Vulnerable Demo</h1>
-  <p>Each section is a target for a different OWASP Top 10 attack. The WAF blocks attempts.</p>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand-stack">
+        <div class="brand-title">VulnShop</div>
+        <p class="brand-subtitle">A deliberately vulnerable retail demo app for sending attacks through EDGE-WAF and watching what gets blocked.</p>
+      </div>
+      <a class="dashboard-link" href="https://waf-dashboard.jackrolls1185.workers.dev">← Back to WAF Dashboard</a>
+    </div>
+  </header>
 
-  <div class="section">
-    <h2>1. Product Search (SQLi Target)</h2>
-    <input type="text" id="search-input" placeholder="Enter search query...">
-    <button onclick="searchProduct()">Search</button>
-    <div id="search-result" class="result"></div>
-  </div>
+  <main class="page-shell">
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-kicker">Protected Demo Storefront</div>
+      <h1 id="page-title">Attack the shop. Watch the WAF answer.</h1>
+      <p class="hero-copy">Use the payload chips below to send benign and malicious requests one at a time. This page is the protected app; the dashboard shows how EDGE-WAF classifies the same traffic.</p>
+    </section>
 
-  <div class="section">
-    <h2>2. Comments (XSS Target)</h2>
-    <input type="text" id="comment-input" placeholder="Enter a comment...">
-    <button onclick="postComment()">Post Comment</button>
-    <div id="comment-result" class="result"></div>
-  </div>
+    <section class="context-strip" aria-label="Demo context">
+      <span><strong>How this relates:</strong> VulnShop receives the request, EDGE-WAF inspects it first, and the dashboard records the verdict.</span>
+      <span>Try a safe chip, then a suspicious one.</span>
+    </section>
 
-  <div class="section">
-    <h2>3. File Viewer (Path Traversal Target)</h2>
-    <input type="text" id="file-input" placeholder="Enter filename..." value="config.txt">
-    <button onclick="viewFile()">View File</button>
-    <div id="file-result" class="result"></div>
-  </div>
+    <section class="target-grid" id="target-grid" aria-label="Vulnerable demo targets"></section>
 
-  <div class="section">
-    <h2>4. Ping Tool (Command Injection Target)</h2>
-    <input type="text" id="host-input" placeholder="Enter hostname..." value="example.com">
-    <button onclick="pingHost()">Ping</button>
-    <div id="ping-result" class="result"></div>
-  </div>
+    <footer class="footer-note">
+      <strong>Safety note:</strong> All endpoints are stubs and never execute real SQL, shell commands, or filesystem operations.
+    </footer>
+  </main>
 
   <script>
     const baseUrl = window.location.origin;
 
-    async function searchProduct() {
-      const q = document.getElementById('search-input').value;
+    const targets = [
+      {
+        id: 'search',
+        title: 'Product Search',
+        badge: 'SQLi',
+        description: 'Search the storefront catalog by keyword.',
+        endpoint: '/api/search',
+        param: 'q',
+        placeholder: 'blue running shoes',
+        action: 'Search',
+        examples: [
+          'blue running shoes',
+          "' OR 1=1--",
+          '1; DROP TABLE users--',
+        ],
+      },
+      {
+        id: 'comment',
+        title: 'Leave a Comment',
+        badge: 'XSS',
+        description: 'Submit a product comment for moderation.',
+        endpoint: '/api/comment',
+        param: 'c',
+        placeholder: 'Great product!',
+        action: 'Post',
+        examples: [
+          'Great product!',
+          "<img src=x onerror=alert('xss')>",
+          "<svg onload=alert('xss')>",
+        ],
+      },
+      {
+        id: 'file',
+        title: 'View Files',
+        badge: 'Path Traversal',
+        description: 'Request a product document from the file viewer.',
+        endpoint: '/api/file',
+        param: 'name',
+        placeholder: 'product-manual.pdf',
+        action: 'View File',
+        examples: [
+          'product-manual.pdf',
+          '../../../etc/passwd',
+          '/etc/passwd',
+        ],
+      },
+      {
+        id: 'ping',
+        title: 'Network Diagnostics',
+        badge: 'Command Injection',
+        description: 'Check whether a host appears reachable.',
+        endpoint: '/api/ping',
+        param: 'host',
+        placeholder: '8.8.8.8',
+        action: 'Ping',
+        examples: [
+          '8.8.8.8',
+          '127.0.0.1; cat /etc/passwd',
+          '127.0.0.1 | whoami',
+        ],
+      },
+    ];
+
+    const targetById = new Map(targets.map((target) => [target.id, target]));
+
+    function createElement(tag, className, text) {
+      const element = document.createElement(tag);
+      if (className) element.className = className;
+      if (text !== undefined) element.textContent = text;
+      return element;
+    }
+
+    function setBusy(targetId, isBusy) {
+      document.querySelectorAll(`[data-target="${targetId}"]`).forEach((control) => {
+        control.disabled = isBusy;
+      });
+    }
+
+    function renderTargets() {
+      const grid = document.getElementById('target-grid');
+
+      targets.forEach((target) => {
+        const card = createElement('article', 'target-card');
+        card.setAttribute('aria-labelledby', `${target.id}-title`);
+
+        const top = createElement('div', 'card-top');
+        const titleStack = createElement('div');
+        const title = createElement('h2', 'card-title', target.title);
+        title.id = `${target.id}-title`;
+        const description = createElement('p', 'card-description', target.description);
+        const badge = createElement('span', 'attack-badge', target.badge);
+        titleStack.append(title, description);
+        top.append(titleStack, badge);
+
+        const form = createElement('form', 'attack-form');
+        form.dataset.form = target.id;
+
+        const inputRow = createElement('div', 'input-row');
+        const input = document.createElement('input');
+        input.id = `${target.id}-input`;
+        input.name = target.param;
+        input.type = 'text';
+        input.placeholder = target.placeholder;
+        input.autocomplete = 'off';
+        input.dataset.target = target.id;
+        input.value = target.examples[0];
+
+        const submit = createElement('button', 'submit-button', target.action);
+        submit.type = 'submit';
+        submit.dataset.target = target.id;
+        inputRow.append(input, submit);
+
+        const payloadRow = createElement('div', 'payload-row');
+        target.examples.forEach((payload) => {
+          const chip = createElement('button', 'payload-chip', payload);
+          chip.type = 'button';
+          chip.title = payload;
+          chip.dataset.target = target.id;
+          chip.addEventListener('click', () => {
+            input.value = payload;
+            submitTarget(target.id, payload);
+          });
+          payloadRow.append(chip);
+        });
+
+        form.addEventListener('submit', (event) => {
+          event.preventDefault();
+          submitTarget(target.id, input.value);
+        });
+
+        form.append(inputRow, payloadRow);
+
+        const result = createElement('div', 'response-result');
+        result.id = `${target.id}-result`;
+        const empty = createElement('div', 'empty-response', 'Choose a payload chip or submit your own value to see the WAF response.');
+        result.append(empty);
+
+        card.append(top, form, result);
+        grid.append(card);
+      });
+    }
+
+    async function submitTarget(targetId, payload) {
+      const target = targetById.get(targetId);
+      const result = document.getElementById(`${targetId}-result`);
+      const url = `${baseUrl}${target.endpoint}?${target.param}=${encodeURIComponent(payload)}`;
+
+      setBusy(targetId, true);
+      result.textContent = '';
+      result.append(createElement('div', 'empty-response', 'Sending request through EDGE-WAF...'));
+
       try {
-        const res = await fetch(`${baseUrl}/api/search?q=${encodeURIComponent(q)}`);
-        const text = await res.text();
-        document.getElementById('search-result').textContent = `Status: ${res.status}\n${text}`;
-      } catch (e) {
-        document.getElementById('search-result').textContent = `Error: ${e.message}`;
+        const response = await fetch(url);
+        const text = await response.text();
+        const parsed = parseJson(text);
+        renderResponse(target, {
+          status: response.status,
+          ok: response.ok,
+          payload,
+          raw: text,
+          json: parsed,
+        });
+      } catch (error) {
+        renderError(targetId, payload, error);
+      } finally {
+        setBusy(targetId, false);
       }
     }
 
-    async function postComment() {
-      const c = document.getElementById('comment-input').value;
+    function parseJson(text) {
       try {
-        const res = await fetch(`${baseUrl}/api/comment?c=${encodeURIComponent(c)}`);
-        const text = await res.text();
-        document.getElementById('comment-result').textContent = `Status: ${res.status}\n${text}`;
-      } catch (e) {
-        document.getElementById('comment-result').textContent = `Error: ${e.message}`;
+        return JSON.parse(text);
+      } catch {
+        return null;
       }
     }
 
-    async function viewFile() {
-      const name = document.getElementById('file-input').value;
-      try {
-        const res = await fetch(`${baseUrl}/api/file?name=${encodeURIComponent(name)}`);
-        const text = await res.text();
-        document.getElementById('file-result').textContent = `Status: ${res.status}\n${text}`;
-      } catch (e) {
-        document.getElementById('file-result').textContent = `Error: ${e.message}`;
-      }
+    function extractChallengeRules(raw) {
+      const match = raw.match(/Matched rules:\s*([^<]+)/i);
+      if (!match) return [];
+      return match[1]
+        .split(',')
+        .map((rule) => rule.trim())
+        .filter(Boolean);
     }
 
-    async function pingHost() {
-      const host = document.getElementById('host-input').value;
-      try {
-        const res = await fetch(`${baseUrl}/api/ping?host=${encodeURIComponent(host)}`);
-        const text = await res.text();
-        document.getElementById('ping-result').textContent = `Status: ${res.status}\n${text}`;
-      } catch (e) {
-        document.getElementById('ping-result').textContent = `Error: ${e.message}`;
+    function summarizeAllowed(target, json, raw) {
+      if (!json || typeof json !== 'object') {
+        return raw ? raw.replace(/\s+/g, ' ').trim().slice(0, 140) : 'Request completed successfully.';
       }
+
+      if (target.id === 'search') {
+        const count = Array.isArray(json.results) ? json.results.length : 0;
+        return `${count} catalog results returned for "${json.query || ''}".`;
+      }
+
+      if (target.id === 'comment') {
+        return `Comment accepted with status "${json.status || 'received'}".`;
+      }
+
+      if (target.id === 'file') {
+        return `Stub file metadata returned for "${json.filename || ''}".`;
+      }
+
+      if (target.id === 'ping') {
+        const time = Number(json.response_time_ms || 0).toFixed(1);
+        return `${json.target || 'Host'} is ${json.status || 'online'} in ${time} ms.`;
+      }
+
+      return 'Request completed successfully.';
     }
+
+    function renderResponse(target, data) {
+      const result = document.getElementById(`${target.id}-result`);
+      result.textContent = '';
+
+      if (data.status === 403 || data.json?.status === 'blocked') {
+        const rules = Array.isArray(data.json?.matched_rules) ? data.json.matched_rules : [];
+        result.append(renderPanel({
+          type: 'blocked',
+          title: 'BLOCKED BY WAF',
+          summary: 'EDGE-WAF stopped this request before it reached the vulnerable stub.',
+          status: data.status,
+          payload: data.payload,
+          raw: data.raw,
+          rules,
+        }));
+        return;
+      }
+
+      if (data.status === 429) {
+        const rules = extractChallengeRules(data.raw).map((id) => ({ id }));
+        result.append(renderPanel({
+          type: 'challenged',
+          title: 'CHALLENGED',
+          summary: 'EDGE-WAF flagged this as suspicious and returned a challenge response.',
+          status: data.status,
+          payload: data.payload,
+          raw: data.raw,
+          rules,
+        }));
+        return;
+      }
+
+      if (data.ok) {
+        result.append(renderPanel({
+          type: 'allowed',
+          title: 'Allowed',
+          summary: summarizeAllowed(target, data.json, data.raw),
+          status: data.status,
+          payload: data.payload,
+          raw: data.raw,
+          rules: [],
+        }));
+        return;
+      }
+
+      result.append(renderPanel({
+        type: 'error',
+        title: 'Request Error',
+        summary: 'The endpoint returned an unexpected response.',
+        status: data.status,
+        payload: data.payload,
+        raw: data.raw,
+        rules: [],
+      }));
+    }
+
+    function renderPanel({ type, title, summary, status, payload, raw, rules }) {
+      const panel = createElement('div', `response-panel ${type}`);
+
+      const heading = createElement('div', 'response-heading');
+      const responseTitle = createElement('div', 'response-title', title);
+      const statusCode = createElement('span', 'status-code', `HTTP ${status}`);
+      heading.append(responseTitle, statusCode);
+      panel.append(heading);
+
+      panel.append(createElement('p', 'response-summary', summary));
+
+      if (rules.length > 0) {
+        const ruleRow = createElement('div', 'rule-row');
+        rules.forEach((rule) => {
+          ruleRow.append(createElement('span', 'rule-badge', rule.id || String(rule)));
+        });
+        panel.append(ruleRow);
+
+        const descriptions = rules
+          .map((rule) => rule.description)
+          .filter(Boolean);
+        if (descriptions.length > 0) {
+          const list = createElement('ul', 'rule-descriptions');
+          descriptions.forEach((description) => {
+            list.append(createElement('li', null, description));
+          });
+          panel.append(list);
+        }
+      }
+
+      const payloadEcho = createElement('div', 'payload-echo');
+      payloadEcho.append(createElement('span', null, 'Payload'));
+      payloadEcho.append(createElement('code', null, payload || '(empty)'));
+      panel.append(payloadEcho);
+
+      panel.append(renderRawResponse(raw));
+      return panel;
+    }
+
+    function renderRawResponse(raw) {
+      const details = createElement('details', 'raw-response');
+      const summary = createElement('summary', null, 'Show raw response');
+      const pre = createElement('pre', null, formatRaw(raw));
+      details.append(summary, pre);
+      return details;
+    }
+
+    function formatRaw(raw) {
+      const parsed = parseJson(raw);
+      return parsed ? JSON.stringify(parsed, null, 2) : raw;
+    }
+
+    function renderError(targetId, payload, error) {
+      const result = document.getElementById(`${targetId}-result`);
+      result.textContent = '';
+      result.append(renderPanel({
+        type: 'error',
+        title: 'Network Error',
+        summary: error.message,
+        status: 'n/a',
+        payload,
+        raw: error.stack || error.message,
+        rules: [],
+      }));
+    }
+
+    renderTargets();
   </script>
 </body>
 </html>
