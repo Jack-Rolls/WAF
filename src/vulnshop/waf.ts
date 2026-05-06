@@ -30,8 +30,8 @@ export const WAF_RULES: WafRule[] = [
     id: 'sqli_001',
     category: 'sqli',
     severity: 'high',
-    description: 'Single quote with OR keyword (OR 1=1 variant)',
-    pattern: /['"]?\s*or\s+['"]?\d+['"]?\s*=\s*['"]?\d+['"]?/i,
+    description: 'Boolean tautology (OR 1=1 or string equality variant)',
+    pattern: /['"]?\s*(or|and)\s+['"]?[\w.-]+['"]?\s*=\s*['"]?[\w.-]+['"]?/i,
   },
   {
     id: 'sqli_002',
@@ -45,7 +45,7 @@ export const WAF_RULES: WafRule[] = [
     category: 'sqli',
     severity: 'high',
     description: 'SQL comment sequence (-- or #)',
-    pattern: /(--\s|#\s|\/\*)/,
+    pattern: /(--(?:\s|$)|#(?:\s|$)|\/\*)/,
   },
   {
     id: 'sqli_004',
@@ -60,6 +60,13 @@ export const WAF_RULES: WafRule[] = [
     severity: 'med',
     description: 'EXEC or EXECUTE keyword',
     pattern: /(exec|execute)\s*\(/i,
+  },
+  {
+    id: 'sqli_006',
+    category: 'sqli',
+    severity: 'med',
+    description: 'Boolean expression with SELECT subquery',
+    pattern: /(and|or)\s+[\w.-]+\s*=\s*\(\s*select\b/i,
   },
 
   // === Cross-Site Scripting (XSS) ===
